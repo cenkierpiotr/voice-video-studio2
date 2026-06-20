@@ -1,0 +1,45 @@
+# ============================================================
+#  Voice & Video Studio AI — Docker Compose
+#
+#  CPU (domyślny):
+#    docker compose up -d
+#
+#  GPU (NVIDIA, wymaga nvidia-container-toolkit):
+#    docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+# ============================================================
+services:
+  backend:
+    build: ./backend
+    container_name: voice-backend
+    restart: unless-stopped
+    environment:
+      - TTS_AGREE_TO_USER_AGREEMENT=1
+      - COQUI_TOS_AGREED=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - audio-output:/app/audio-output
+      - xtts-speakers:/app/xtts-speakers
+      - ai-models:/app/ai-models
+    ports:
+      - "47821:47821"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:47821/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build: ./frontend
+    container_name: voice-frontend
+    restart: unless-stopped
+    ports:
+      - "47822:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  audio-output:
+  xtts-speakers:
+  ai-models:
